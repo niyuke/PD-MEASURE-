@@ -23,7 +23,7 @@ button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
 .row{display:flex;gap:10px;flex-wrap:wrap}.row>button{flex:1}
 #err{color:#c0392b;font-weight:600}
 .stage{position:relative;margin:0 auto 12px;border-radius:18px;overflow:hidden;background:#000;width:100%}
-.stage video,.stage canvas{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1)}
+.stage video,.stage canvas{position:absolute;inset:0;width:100%;height:100%}
 .oval{position:absolute;left:50%;top:54%;width:54%;aspect-ratio:3/4;transform:translate(-50%,-50%);border:2px dashed rgba(255,255,255,.55);border-radius:50%}
 .dot{position:absolute;top:3%;left:50%;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 4px #fff;animation:pu 1.4s ease-in-out infinite}
 @keyframes pu{50%{transform:scale(1.25)}}
@@ -76,13 +76,15 @@ small{color:var(--mute);display:block;margin-top:12px}
 <div><span class="big" id="pd">--</span> mm</div>
 <div class="two"><div>Right eye<b id="pr">--</b></div><div>Left eye<b id="pl">--</b></div></div>
 <small id="note"></small>
+<div class="row" style="margin-top:14px"><input id="known" type="number" inputmode="decimal" step="0.5" min="40" max="80" placeholder="Known PD, mm" aria-label="Known PD in millimetres" style="flex:2;font:inherit;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);min-width:0"><button id="cal">Calibrate</button></div>
+<small id="calnote">Optional: if you know your PD from an optician, enter it and tap Calibrate. The tool then adjusts to your own iris size. Leave it empty and tap Calibrate to reset.</small>
 </div>
 <div class="row"><button id="again">Measure again</button><button id="use" class="p">Use this PD</button></div>
 </section>
 </main>
 
 <script>
-const IRIS_MM = 11.7;        // average horizontal iris diameter, the scale reference
+const IRIS_MM = 12;          // iris diameter used as the scale reference (total and mono PD)
 const PUPIL_TO_ROT = 10;     // pupil to eye's centre of rotation, mm
 const CORNEA_TO_ROT = 13.5;  // cornea to centre of rotation, mm
 const NEED = 100, DMIN = 350, DMAX = 400, SPAN = [250, 500], MAXF = 1500; // frames, mm
@@ -90,6 +92,7 @@ const NEED = 100, DMIN = 350, DMAX = 400, SPAN = [250, 500], MAXF = 1500; // fra
 const MODELS = ["./face_landmarker.task", "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"];
 const LIBS = ["https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14", "https://unpkg.com/@mediapipe/tasks-vision@0.10.14"];
 
+let SCALE = 1; try { SCALE = parseFloat(localStorage.getItem("pdScale12")) || 1; } catch (e) {}  // personal iris-size calibration
 const $ = id => document.getElementById(id);
 const vid = $("v"), cv = $("c"), cx = cv.getContext("2d");
 let landmarker, stream, running = false, lastT = -1, win = [], badRun = 0, total = 0, out = null;
@@ -193,7 +196,7 @@ function frame(r) {
   if (!f) return reject("Put your face in the oval.");
   const P = i => [f[i].x * w, f[i].y * h], d = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
   const pr = P(468), pl = P(473), ir = (d(P(469), P(471)) + d(P(474), P(476))) / 2;
-  const D = 0.75 * Math.max(w, h) * IRIS_MM / ir;   // eye-to-camera distance, mm (assumes a typical lens)
+  const D = 0.75 * Math.max(w, h) * IRIS_MM * SCALE / ir;   // eye-to-camera distance, mm (assumes a typical lens)
   $("dist").textContent = "about " + Math.round(D / 10) + " cm";
   $("pin").style.left = Math.min(100, Math.max(0, (D - SPAN[0]) / (SPAN[1] - SPAN[0]) * 100)) + "%";
 
@@ -219,7 +222,7 @@ function frame(r) {
   if (!ok) return reject(msg);
 
   badRun = 0; say("Hold still and look at the dot…");
-  const k = IRIS_MM / ir, u = [(pl[0] - pr[0]) / d(pr, pl), (pl[1] - pr[1]) / d(pr, pl)];
+  const k = IRIS_MM * SCALE / ir, u = [(pl[0] - pr[0]) / d(pr, pl), (pl[1] - pr[1]) / d(pr, pl)];
   const a = P(168), b = P(6), mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
   const t = ((mid[0] - pr[0]) * u[0] + (mid[1] - pr[1]) * u[1]) * k, near = d(pr, pl) * k;
   // The eyes turn inward to look at the near dot, which pulls the pupils closer together.
@@ -237,7 +240,7 @@ function finish() {
   running = false;
   const pdv = tmean(win.map(x => x[0])), R = tmean(win.map(x => x[1])), D = tmean(win.map(x => x[2])), nearPd = tmean(win.map(x => x[3]));
   const spread = mad(win.map(x => x[0]));
-  out = {pd: half(pdv), r: half(R), l: half(pdv - R)};
+  out = {raw: pdv, pd: half(pdv), r: half(R), l: half(pdv - R)};
   $("pd").textContent = out.pd.toFixed(1); $("pr").textContent = out.r.toFixed(1); $("pl").textContent = out.l.toFixed(1);
   const steady = spread < 0.15 ? "very steady" : spread < 0.3 ? "steady" : "a little shaky";
   $("note").textContent = `You looked at a dot about ${Math.round(D / 10)} cm away, so the near reading (${nearPd.toFixed(1)} mm) was converted to distance PD. Averaged over ${win.length} frames; reading was ${steady}. Typical accuracy is about ±1.5 mm because the scale comes from your iris size. If you have a prescription with a PD, use that value.`;
@@ -245,6 +248,14 @@ function finish() {
   show("res");
 }
 
+$("cal").onclick = () => {
+  const known = parseFloat($("known").value);
+  if ($("known").value === "") SCALE = 1;
+  else if (known >= 40 && known <= 80 && out) SCALE = Math.min(1.15, Math.max(0.85, SCALE * known / out.raw));
+  else { $("calnote").textContent = "Enter a PD between 40 and 80 mm."; return; }
+  try { localStorage.setItem("pdScale12", SCALE); } catch (e) {}
+  $("calnote").textContent = $("known").value === "" ? "Calibration reset. Tap Measure again." : "Calibrated. Tap Measure again to see your adjusted PD.";
+};
 $("go").onclick = start;
 $("again").onclick = () => { if (stream) { show("live"); win = []; badRun = 0; total = 0; $("bar").style.width = "0"; running = true; tick(); } else start(); };
 $("use").onclick = () => {
