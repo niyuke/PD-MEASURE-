@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Measure your pupillary distance</title>
+<style>
+:root{--bg:#eef1f6;--ink:#0d1321;--mute:#566074;--line:#d3d9e4;--acc:#2f4bff;--accink:#fff;--ok:#12a36a;--card:#fff}
+@media(prefers-color-scheme:dark){:root{--bg:#0c111c;--ink:#eaeefa;--mute:#98a3ba;--line:#242d42;--acc:#7b8cff;--accink:#0c111c;--card:#151c2c}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:560px;margin:0 auto;padding:max(18px,env(safe-area-inset-top)) 16px max(28px,env(safe-area-inset-bottom))}
+h1{font-size:1.6rem;line-height:1.2;margin:0 0 6px}
+p{margin:0 0 14px;color:var(--mute)}
+[hidden]{display:none!important}
+ol{margin:0 0 18px;padding-left:22px}li{margin-bottom:6px}
+button{font:inherit;font-weight:650;padding:13px 20px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;min-height:48px}
+button.p{background:var(--acc);color:var(--accink);border-color:var(--acc)}
+button:disabled{opacity:.4;cursor:not-allowed}
+button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.row{display:flex;gap:10px;flex-wrap:wrap}.row>button{flex:1}
+#err{color:#c0392b;font-weight:600}
+.stage{position:relative;margin:0 auto 12px;border-radius:18px;overflow:hidden;background:#000;width:100%}
+.stage video,.stage canvas{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1)}
+.oval{position:absolute;left:50%;top:54%;width:54%;aspect-ratio:3/4;transform:translate(-50%,-50%);border:2px dashed rgba(255,255,255,.55);border-radius:50%}
+.dot{position:absolute;top:3%;left:50%;width:22px;height:22px;margin-left:-11px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 4px #fff;animation:pu 1.4s ease-in-out infinite}
+@keyframes pu{50%{transform:scale(1.25)}}
+@media(prefers-reduced-motion:reduce){.dot{animation:none}}
+.say{position:absolute;left:12px;right:12px;bottom:12px;padding:9px 12px;border-radius:10px;background:rgba(10,14,24,.8);color:#fff;text-align:center;font-weight:600}
+.meter{position:relative;height:10px;border-radius:5px;background:var(--line);margin:6px 0 4px}
+.zone{position:absolute;top:0;bottom:0;border-radius:5px;background:color-mix(in srgb,var(--ok) 45%,transparent)}
+.pin{position:absolute;top:-5px;width:6px;height:20px;border-radius:3px;background:var(--ink);transform:translateX(-3px)}
+.prog{height:6px;border-radius:3px;background:var(--line);overflow:hidden;margin:14px 0 6px}.prog i{display:block;height:100%;width:0;background:var(--ok);transition:width .12s}
+.lbl{display:flex;justify-content:space-between;font-size:.9rem;color:var(--mute)}
+.big{font-size:4rem;font-weight:750;line-height:1;letter-spacing:-.02em}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:12px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:14px 0 0}
+.two div{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.two b{display:block;font-size:1.7rem;line-height:1.2}
+small{color:var(--mute);display:block;margin-top:12px}
+h2{font-size:1.2rem;margin:0 0 8px}
+.eyes{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.pan{display:block;width:100%;border-radius:12px;background:#000;touch-action:none;cursor:crosshair;margin-bottom:6px}
+#pL,#pR{aspect-ratio:1}#pB{aspect-ratio:2/1}
+.live{font-weight:650;margin:8px 0 12px}
+.figs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px}
+.figs figure{margin:0;border:1px solid var(--line);border-radius:12px;padding:8px}
+.figs svg{width:100%;height:auto;display:block}
+.figs figcaption{font-size:.85rem;color:var(--mute);margin-top:6px}
+.okm{color:var(--ok);font-weight:700}.nom{color:#c0392b;font-weight:700}
+.nudge,.cnudge{display:flex;gap:6px;margin-bottom:6px}.nudge button,.cnudge button{flex:1;min-height:40px;padding:6px}
+</style>
+</head>
+<body>
+<main>
+<header id="hd"><h1>Measure your pupillary distance</h1>
+<p>Your PD is the distance between your pupils. It centres the lenses in your glasses.</p></header>
+
+<section id="intro">
+<ol>
+<li>Take off your glasses and face a window or lamp.</li>
+<li>Hold a bank card flat against your forehead, long side level, above your eyebrows. Pinch it at the middle of its left and right sides so it stays straight.</li>
+<li>Keep your face about 40 cm from the camera, look at the blue dot and hold still. It measures on its own.</li>
+</ol>
+<div class="figs">
+<figure><svg viewBox="0 0 160 124" role="img" aria-label="Front view: the card is flat on the forehead above the eyebrows, long side level, pinched halfway along each short side"><ellipse cx="80" cy="72" rx="38" ry="50" fill="#f1c9a5" stroke="#9aa5b1" stroke-width="2"/><path d="M52 64Q64 59 74 64M86 64Q96 59 108 64" stroke="#5b4636" stroke-width="3.5" fill="none" stroke-linecap="round"/><ellipse cx="64" cy="76" rx="8" ry="4.5" fill="#fff"/><ellipse cx="96" cy="76" rx="8" ry="4.5" fill="#fff"/><circle cx="64" cy="76" r="3.6" fill="#2b3340"/><circle cx="96" cy="76" r="3.6" fill="#2b3340"/><path d="M70 102Q80 108 90 102" stroke="#a8645a" stroke-width="2.5" fill="none" stroke-linecap="round"/><rect x="52" y="22" width="56" height="35" rx="4" fill="#dfe7ff" stroke="#2f4bff" stroke-width="2"/><rect x="58" y="29" width="10" height="8" rx="1.5" fill="#f0b400"/><path d="M58 47H100M58 51H84" stroke="#2f4bff" stroke-width="2" opacity=".55"/><ellipse cx="50" cy="39.5" rx="7" ry="5" fill="#e0a97f" stroke="#a8704a" stroke-width="1.5"/><ellipse cx="110" cy="39.5" rx="7" ry="5" fill="#e0a97f" stroke="#a8704a" stroke-width="1.5"/><circle cx="52" cy="39.5" r="10" fill="none" stroke="#12a36a" stroke-width="2" stroke-dasharray="3 2"/><circle cx="108" cy="39.5" r="10" fill="none" stroke="#12a36a" stroke-width="2" stroke-dasharray="3 2"/><text x="80" y="14" text-anchor="middle" font-size="9" font-weight="700" fill="#12a36a">pinch halfway along each side</text></svg><figcaption><b>Front view.</b> <span class="okm">&#10003;</span> Long side level, above the eyebrows. Pinch the card at the middle of its left and right sides.</figcaption></figure>
+<figure><svg viewBox="0 0 160 124" role="img" aria-label="Side view: the card touches the forehead and stays straight; a bent card is wrong"><path d="M70 14C98 8 111 30 110 50L112 58L124 80L110 86L112 94L108 100L110 108C100 120 70 118 56 100C44 80 48 32 70 14Z" fill="#f1c9a5" stroke="#9aa5b1" stroke-width="2"/><circle cx="98" cy="68" r="4" fill="#fff" stroke="#9aa5b1"/><circle cx="100" cy="68" r="2" fill="#2b3340"/><path d="M112 20V57" stroke="#2f4bff" stroke-width="3.5" stroke-linecap="round"/><ellipse cx="113" cy="38.5" rx="6" ry="4.5" fill="#e0a97f" stroke="#a8704a" stroke-width="1.5"/><text x="140" y="26" text-anchor="middle" font-size="8" font-weight="700" fill="#12a36a">touching</text><path d="M128 28L116 36" stroke="#12a36a" stroke-width="1.5"/><path d="M30 20Q20 38 30 57" fill="none" stroke="#c0392b" stroke-width="3" stroke-dasharray="4 3" stroke-linecap="round"/><text x="22" y="72" text-anchor="middle" font-size="8" font-weight="700" fill="#c0392b">bent &#10007;</text></svg><figcaption><b>Side view.</b> <span class="okm">&#10003;</span> The card touches your forehead and stays straight. <span class="nom">&#10007;</span> Do not let it bend.</figcaption></figure>
+</div>
+<p id="err" role="alert" hidden></p>
+<a id="full" target="_blank" rel="noopener" hidden style="display:block;text-align:center;margin-bottom:10px;padding:13px 20px;border-radius:12px;border:1px solid var(--acc);color:var(--acc);font-weight:650;text-decoration:none">Open on its own page</a>
+<button id="go" class="p" style="width:100%">Start camera</button>
+<small>Any bank card works. It is found and photographed automatically.</small>
+</section>
+
+<section id="live" hidden>
+<div class="stage" id="stage">
+<video id="v" playsinline muted autoplay></video>
+<canvas id="c"></canvas>
+<div class="oval"></div><div class="dot" title="Look here"></div>
+<div class="say" id="say" role="status" aria-live="polite"></div>
+</div>
+<div class="lbl"><span>Closer</span><span id="dist"></span><span>Further</span></div>
+<div class="meter"><div class="zone" id="zone"></div><div class="pin" id="pin" hidden></div></div>
+<div class="prog"><i id="bar"></i></div>
+</section>
+
+<section id="res" hidden>
+<div class="card">
+<div class="lbl"><span>Distance PD</span></div>
+<div><span class="big" id="pd">--</span> mm</div>
+<div class="two"><div>Left eye<b id="pl">--</b></div><div>Right eye<b id="pr">--</b></div></div>
+<small id="note"></small>
+</div>
+<button id="fine" style="width:100%;margin-bottom:10px">Fine-tune by hand</button>
+<div class="row"><button id="again">Measure again</button><button id="use" class="p">Use this PD</button></div>
+</section>
+<section id="card" hidden>
+<div class="card"><h2>Mark the card</h2>
+<p>The card was found automatically. The magnifier (8×) shows the selected corner. Drag a dot onto the card's corner, or use the arrow keys (Shift for bigger steps) or the buttons for tiny moves. If it was not found, tap the four corners.</p>
+<canvas id="pC" class="pan"></canvas>
+<div class="live" id="cnote" role="status" aria-live="polite"></div>
+<div class="cnudge"><button data-x="-1" data-y="0" aria-label="Move left">◀</button><button data-x="0" data-y="-1" aria-label="Move up">▲</button><button data-x="0" data-y="1" aria-label="Move down">▼</button><button data-x="1" data-y="0" aria-label="Move right">▶</button></div>
+<div class="row" style="margin-bottom:10px"><button id="cPrev">Previous corner</button><button id="cNext">Next corner</button></div>
+<div class="row"><button id="cUndo">Undo</button><button id="cDone" class="p" hidden>Next: pupils and nose bridge</button></div>
+<button id="cAgain" style="width:100%;margin-top:10px">Measure again</button></div>
+</section>
+<section id="adj" hidden>
+<div class="card">
+<h2>Fine-tune by hand</h2>
+<ol>
+<li>Move the yellow circle so the iris sits inside it, centred on the pupil. Drag inside the circle, or use the arrows for tiny moves. The circle has a fixed size, set by the scale.</li>
+<li>The small green cross marks the circle's centre. Place it exactly on the middle of the pupil.</li>
+<li>Drag the white line to the middle of your nose bridge.</li>
+</ol>
+<div class="figs">
+<figure><svg viewBox="0 0 160 100" role="img" aria-label="Correct: the whole iris sits inside the yellow circle with a small gap all round">
+<defs><clipPath id="lid1"><path d="M8 50 Q80 8 152 50 Q80 92 8 50Z"/></clipPath></defs>
+<path d="M8 50 Q80 8 152 50 Q80 92 8 50Z" fill="#fff" stroke="#9aa5b1" stroke-width="2"/>
+<g clip-path="url(#lid1)"><circle cx="80" cy="50" r="26" fill="#6f8aa8"/><circle cx="80" cy="50" r="11" fill="#14181f"/><circle cx="73" cy="42" r="3.5" fill="#fff" opacity=".8"/></g>
+<circle cx="80" cy="50" r="32" fill="none" stroke="#f0b400" stroke-width="3"/>
+<path d="M71 50H89M80 41V59" stroke="#12a36a" stroke-width="2"/>
+</svg><figcaption><span class="okm">&#10003; Right.</span> The iris sits inside the circle and the cross is on the middle of the pupil.</figcaption></figure>
+<figure><svg viewBox="0 0 160 100" role="img" aria-label="Wrong: the circle and cross are off to one side of the pupil">
+<defs><clipPath id="lid2"><path d="M8 50 Q80 8 152 50 Q80 92 8 50Z"/></clipPath></defs>
+<path d="M8 50 Q80 8 152 50 Q80 92 8 50Z" fill="#fff" stroke="#9aa5b1" stroke-width="2"/>
+<g clip-path="url(#lid2)"><circle cx="80" cy="50" r="26" fill="#6f8aa8"/><circle cx="80" cy="50" r="11" fill="#14181f"/><circle cx="73" cy="42" r="3.5" fill="#fff" opacity=".8"/></g>
+<circle cx="94" cy="50" r="32" fill="none" stroke="#f0b400" stroke-width="3"/>
+<path d="M85 50H103M94 41V59" stroke="#12a36a" stroke-width="2"/>
+</svg><figcaption><span class="nom">&#10007; Wrong.</span> The circle is off to one side, so the cross is not on the pupil. Move it until it is centred.</figcaption></figure>
+</div>
+<div class="eyes">
+<div><div class="lbl"><span>Left eye</span></div><canvas id="pL" class="pan"></canvas>
+<div class="nudge"><button data-k="L" data-x="-1" data-y="0" aria-label="Move left">◀</button><button data-k="L" data-x="0" data-y="-1" aria-label="Move up">▲</button><button data-k="L" data-x="0" data-y="1" aria-label="Move down">▼</button><button data-k="L" data-x="1" data-y="0" aria-label="Move right">▶</button></div></div>
+<div><div class="lbl"><span>Right eye</span></div><canvas id="pR" class="pan"></canvas>
+<div class="nudge"><button data-k="R" data-x="-1" data-y="0" aria-label="Move left">◀</button><button data-k="R" data-x="0" data-y="-1" aria-label="Move up">▲</button><button data-k="R" data-x="0" data-y="1" aria-label="Move down">▼</button><button data-k="R" data-x="1" data-y="0" aria-label="Move right">▶</button></div></div>
+</div>
+<div class="lbl"><span>Nose bridge</span></div><canvas id="pB" class="pan"></canvas>
+<div class="live" id="adjnote" role="status" aria-live="polite"></div>
+<div class="row"><button id="adjBack">Back</button><button id="adjReset">Reset</button><button id="adjDone" class="p">Apply</button></div>
+</div>
+</section>
+</main>
+
+<script>
+const IRIS_MM = 12.3;        // iris diameter used as the scale reference (total and mono PD)
+const PUPIL_TO_ROT = 10;     // pupil to eye's centre of rotation, mm
+const CORNEA_TO_ROT = 13.5;  // cornea to centre of rotation, mm
+const NEED = 100, DMIN = 300, DMAX = 520, SPAN = [250, 600]; // frames, mm (any distance in DMIN..DMAX is fine: the real distance is measured and corrected for)
+// Put face_landmarker.task next to this file for the most reliable loading
+const MODELS = ["./face_landmarker.task", "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task"];
+// Optional self-hosting: put vision_bundle.mjs and the wasm folder in ./mediapipe/
+const LIBS = ["./mediapipe", "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14", "https://unpkg.com/@mediapipe/tasks-vision@0.10.14"];
+
+const $ = id => document.getElementById(id);
+const vid = $("v"), cv = $("c"), cx = cv.getContext("2d");
+let autoRaw = 0, lastGood = null, snapCv = document.createElement("canvas"), VW = 0, VH = 0, adj0 = null, adj = null, applied = null;
+let landmarker, stream, running = false, lastT = -1, win = [], badRun = 0, total = 0, out = null;
+const show = n => { ["intro", "live", "res", "adj", "card"].forEach(s => $(s).hidden = s !== n); $("hd").hidden = n === "live" || n === "adj" || n === "card"; };
+const say = t => $("say").textContent = t;
+const med = a => { const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+const mad = a => { const m = med(a); return med(a.map(v => Math.abs(v - m))); };
+const tmean = a => { const s = [...a].sort((x, y) => x - y), k = Math.floor(s.length * 0.1), t = s.slice(k, s.length - k); return t.reduce((x, y) => x + y, 0) / t.length; }; // average, ignoring the top and bottom 10%
+const CARD_L = 85.6, CARD_S = 53.98, CARD_DEPTH = 12;   // bank card size (ISO), and how far the forehead is in front of the iris, mm
+let cardMode = false, cbad = 0, cstab = 0, lastCard = null, irDet = 0, eyeRoll = 0;
+const CARD_THR = 1.9;   // how much stronger than the background the card outline must be (lower = more tolerant)
+const half = v => Math.round(v * 2) / 2;
+const mk = (p, R) => { const r = half(R), l = half(p - R); return {raw: p, pd: r + l, r, l}; };
+
+const wait = (p, ms, e) => Promise.race([p, new Promise((_, j) => setTimeout(() => j(new Error(e)), ms))]);
+let LIB, FS, BUF, delegate = "GPU";
+const makeLm = d => LIB.FaceLandmarker.createFromOptions(FS, {baseOptions: {modelAssetBuffer: BUF.slice(), delegate: d}, runningMode: "VIDEO", numFaces: 1, outputFacialTransformationMatrixes: true});
+async function loadModel() {
+  for (const c of LIBS) {
+    try { LIB = await wait(import(c + "/vision_bundle.mjs"), 20000, "engine"); FS = await wait(LIB.FilesetResolver.forVisionTasks(c + "/wasm"), 30000, "engine"); break; }
+    catch (e) { LIB = null; }
+  }
+  if (!LIB) throw new Error("engine");
+  for (const u of MODELS) {   // a missing local file can come back as a web page, so check the size
+    try { const r = await wait(fetch(u), 30000, "model"); if (!r.ok) continue; const b = new Uint8Array(await r.arrayBuffer()); if (b.length > 1e6) { BUF = b; break; } } catch (e) {}
+  }
+  if (!BUF) throw new Error("model");
+  for (const d of ["GPU", "CPU"]) { try { const l = await makeLm(d); delegate = d; return l; } catch (e) {} }
+  throw new Error("engine");
+}
+
+async function fail(e) {
+  running = false; if (stream) stream.getTracks().forEach(t => t.stop()); stream = null;
+  show("intro"); $("err").textContent = ERR[e.message] || "Something went wrong (" + (e.message || e.name) + "). Please try again."; $("err").hidden = false; $("go").textContent = "Try again";
+}
+
+async function openCam() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("insecure");
+  const tries = [{facingMode: "user", width: {ideal: 1920}, height: {ideal: 1080}}, {facingMode: "user"}, true];
+  let last;
+  for (const video of tries) {
+    try { return await navigator.mediaDevices.getUserMedia({video, audio: false}); }
+    catch (e) { last = e; if (e.name === "NotAllowedError" || e.name === "SecurityError") break; }
+  }
+  throw last;
+}
+
+const ERR = {
+  NotAllowedError: "Camera access is blocked. Allow the camera for this site in your browser's address bar or settings, then try again.",
+  SecurityError: "Camera access is blocked. Allow the camera for this site in your browser settings, then try again.",
+  NotFoundError: "No camera was found on this device.",
+  NotReadableError: "Another app is using the camera. Close it, then try again.",
+  insecure: "The camera only works on a secure page. Open this page with https://.",
+  engine: "The measurement engine could not load. Check your connection, reload the page and try again.",
+  model: "The face model could not load. Check your connection and try again."
+};
+
+async function blockedMsg(e) {
+  const framed = window.self !== window.top, web = /^https?:/.test(location.protocol);
+  const pol = document.permissionsPolicy || document.featurePolicy;
+  let state = ""; try { state = (await navigator.permissions.query({name: "camera"})).state; } catch (x) {}
+  if (framed && pol && pol.allowsFeature && !pol.allowsFeature("camera")) {
+    if (web) { $("full").href = location.href; $("full").hidden = false; }
+    return "This page is embedded in another page that does not allow the camera, which is why no pop-up appears. Open it on its own page to continue.";
+  }
+  if (/FBAN|FBAV|Instagram|Snapchat|MicroMessenger|; wv\)|Line\//i.test(navigator.userAgent))
+    return "This in-app browser does not allow the camera. Open this page in Chrome or Safari instead.";
+  if (state === "denied") return "Camera access was blocked earlier for this site. Tap the lock or camera icon in the address bar (on iPhone: aA > Website Settings), set Camera to Allow, then try again.";
+  if (framed && web) { $("full").href = location.href; $("full").hidden = false; }
+  return ERR.NotAllowedError;
+}
+
+async function start(cm) {
+  cardMode = !!cm; cp = []; cbad = 0; cstab = 0; lastCard = null; $("fine").textContent = "Fine-tune by hand";
+  $("err").hidden = true; $("full").hidden = true; show("live"); say("Starting camera…");
+  try {
+    stream = await openCam();   // ask for the camera first so the permission pop-up appears straight away
+    say("Loading the measurement model…");
+    landmarker = landmarker || await loadModel();
+    vid.srcObject = stream; await vid.play();
+    if (!vid.videoWidth) await new Promise(r => vid.addEventListener("loadedmetadata", r, {once: true}));
+    cv.width = vid.videoWidth; cv.height = vid.videoHeight;
+    const st = $("stage"), ar = cv.width / cv.height;
+    st.style.aspectRatio = ar; st.style.maxWidth = `calc(60vh * ${ar})`;
+    $("zone").style.left = (DMIN - SPAN[0]) / (SPAN[1] - SPAN[0]) * 100 + "%";
+    $("zone").style.width = (DMAX - DMIN) / (SPAN[1] - SPAN[0]) * 100 + "%";
+    win = []; badRun = 0; total = 0; lastT = -1; running = true; tick();
+  } catch (e) {
+    if (stream) stream.getTracks().forEach(t => t.stop()); stream = null;
+    show("intro");
+    $("err").textContent = (e.name === "NotAllowedError" || e.name === "SecurityError") ? await blockedMsg(e) : (ERR[e.name] || ERR[e.message] || "The camera could not start (" + (e.message || e.name) + "). Try again.");
+    $("err").hidden = false; $("go").textContent = "Try again";
+  }
+}
+
+let errs = 0;
+function tick() {
+  if (!running) return;
+  if (vid.readyState >= 2 && vid.currentTime !== lastT) {
+    lastT = vid.currentTime;
+    let r = null;
+    try { r = landmarker.detectForVideo(vid, performance.now()); errs = 0; } catch (e) { console.error(e); errs++; }
+    if (r) frame(r); else if (errs === 8) return swapEngine();
+  }
+  requestAnimationFrame(tick);
+}
+async function swapEngine() {
+  running = false; say("Switching measurement mode…");
+  try { if (delegate === "CPU") throw new Error("engine"); landmarker = await makeLm("CPU"); delegate = "CPU"; errs = 0; running = true; tick(); }
+  catch (e) { fail(new Error("engine")); }
+}
+
+// From positions in the image (right pupil, left pupil, nose bridge, iris width in pixels) to the distance PD and the right-eye PD
+function solve(pr, pl, mid, ir, w, h) {
+  const dd = Math.hypot(pl[0] - pr[0], pl[1] - pr[1]), k = IRIS_MM / ir, D = 0.75 * Math.max(w, h) * IRIS_MM / ir;
+  const near = dd * k, t = ((mid[0] - pr[0]) * (pl[0] - pr[0]) + (mid[1] - pr[1]) * (pl[1] - pr[1])) / dd * k;
+  // The eyes turn inward to look at the near dot, which pulls the pupils closer together.
+  // Undo that: near = PD * (1 - r / sqrt(L^2 + (PD/2)^2)), solved for the distance PD.
+  const L = D + CORNEA_TO_ROT;
+  let pdv = near;
+  for (let i = 0; i < 6; i++) pdv = near / (1 - PUPIL_TO_ROT / Math.hypot(L, pdv / 2));
+  return {pdv, R: t * pdv / near, D, near};
+}
+
+function reject(msg) { say(msg); if (++badRun > 45) { win = []; $("bar").style.width = "0"; } }
+
+function frame(r) {
+  const w = cv.width, h = cv.height; total++;
+  cx.clearRect(0, 0, w, h);
+  const f = r.faceLandmarks[0];
+  $("pin").hidden = !f;
+  if (!f) return reject("Put your face in the oval.");
+  const P = i => [f[i].x * w, f[i].y * h], d = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+  const pr = P(468), pl = P(473), ir = (d(P(469), P(471)) + d(P(474), P(476))) / 2;
+  const D = 0.75 * Math.max(w, h) * IRIS_MM / ir;   // eye-to-camera distance, mm (assumes a typical lens)
+  $("dist").textContent = "about " + Math.round(D / 10) + " cm";
+  $("pin").style.left = Math.min(100, Math.max(0, (D - SPAN[0]) / (SPAN[1] - SPAN[0]) * 100)) + "%";
+
+  // Head pose from the face transform: yaw and pitch must be near zero
+  let yaw = 0, pitch = 0;
+  const M = r.facialTransformationMatrixes && r.facialTransformationMatrixes[0];
+  if (M) { const m = M.data; yaw = Math.asin(Math.max(-1, Math.min(1, m[8]))) * 57.3; pitch = Math.atan2(-m[9], m[10]) * 57.3; }
+  const roll = Math.atan2(pl[1] - pr[1], pl[0] - pr[0]) * 57.3;
+  const open = Math.min(d(P(159), P(145)), d(P(386), P(374))) > 0.4 * ir;
+  const gz = (c, a, b) => (c[0] - a[0]) / (b[0] - a[0]), gR = gz(pr, P(33), P(133)), gL = gz(pl, P(362), P(263));
+  const gaze = gR > .22 && gR < .78 && gL > .22 && gL < .78;   // only catches a clear look-away
+  const mx = (pr[0] + pl[0]) / 2 / w, my = (pr[1] + pl[1]) / 2 / h;
+
+  let msg = "";
+  if (mx < .25 || mx > .75 || my < .15 || my > .7) msg = "Centre your face in the oval.";
+  else if (D > DMAX) msg = "Move closer.";
+  else if (D < DMIN) msg = "Move back a little.";
+  else if (Math.abs(yaw) > 10 || Math.abs(pitch) > 14) msg = "Face the camera straight on.";
+  else if (Math.abs(roll) > 10) msg = "Keep your head level.";
+  else if (!open) msg = "Keep your eyes open and look at the dot.";
+  else if (!gaze) msg = "Look at the blue dot.";
+
+  const ok = !msg;
+  cx.lineWidth = Math.max(2, w / 400); cx.strokeStyle = ok ? "#3ddc97" : "#fff";
+  for (const p of [pr, pl]) { cx.beginPath(); cx.arc(p[0], p[1], ir / 2, 0, 7); cx.stroke(); }
+  if (!ok) return reject(msg);
+
+  badRun = 0;
+  say("Hold still and look at the dot…");
+  const mid = [(P(168)[0] + P(6)[0]) / 2, (P(168)[1] + P(6)[1]) / 2];
+  lastGood = {pr, pl, mid, ir};
+  if (cardMode) {   // only count frames where the card is in view and steady
+    const rc = detCard(vid, mid, pr, pl, ir);
+    if (!rc) { if (++cbad > 10) { win = []; cstab = 0; $("bar").style.width = "0"; } return say("Hold a bank card flat on your forehead, long side level."); }
+    cbad = 0; cx.strokeStyle = "#ffd54a"; cx.strokeRect(rc.x, rc.y, rc.w, rc.h);
+    const lc = lastCard; lastCard = rc;
+    if (Math.abs(rc.tilt - roll) > 6) { cstab = 0; return say("Keep the card level: its long side should be level."); }
+    cstab = lc && Math.hypot(rc.x - lc.x, rc.y - lc.y) < .35 * ir && Math.abs(rc.w / lc.w - 1) < .08 ? cstab + 1 : 0;
+    if (cstab < 6) return say("Card found. Hold still…");
+  }
+  const o = solve(pr, pl, mid, ir, w, h);
+  win.push([o.pdv, o.R, o.D, o.near]); if (win.length > NEED) win.shift();
+  $("bar").style.width = win.length / NEED * 100 + "%";
+  if (win.length === NEED) finish();   // 100 good frames collected: average them (noise averages out, so no extra steadiness gate)
+}
+
+function paint(o) { $("pd").textContent = o.pd.toFixed(1); $("pr").textContent = o.r.toFixed(1); $("pl").textContent = o.l.toFixed(1); }
+
+function finish() {
+  running = false;
+  const pdv = tmean(win.map(x => x[0])), R = tmean(win.map(x => x[1])), D = tmean(win.map(x => x[2])), nearPd = tmean(win.map(x => x[3]));
+  const spread = mad(win.map(x => x[0]));
+  out = mk(pdv, R);
+  paint(out);
+  // Keep the last frame and the detected positions so the patient can fine-tune them
+  VW = snapCv.width = vid.videoWidth; VH = snapCv.height = vid.videoHeight;
+  snapCv.getContext("2d").drawImage(vid, 0, 0);
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; vid.srcObject = null; }
+  const g = lastGood, pt = p => ({x: p[0], y: p[1]});
+  adj0 = {R: {c: pt(g.pr), d: g.ir}, L: {c: pt(g.pl), d: g.ir}, b: pt(g.mid)}; autoRaw = pdv;
+  adj = JSON.parse(JSON.stringify(adj0)); applied = JSON.parse(JSON.stringify(adj0));
+  $("fine").hidden = false;
+  const steady = spread < 0.15 ? "very steady" : spread < 0.3 ? "steady" : "a little shaky";
+  $("note").textContent = `You looked at a dot about ${Math.round(D / 10)} cm away, so the near reading (${nearPd.toFixed(1)} mm) was converted to distance PD. Averaged over ${win.length} frames; reading was ${steady}. ${cardMode ? "Typical accuracy is about ±1 mm with the card." : "Typical accuracy is about ±2 mm because the scale comes from your iris size. For the most accurate reading, measure again with a bank card."} If you have a prescription with a PD, use that value.`;
+  if (navigator.vibrate) navigator.vibrate(60);
+  if (cardMode) {
+    irDet = g.ir; eyeRoll = Math.atan2(g.pl[1] - g.pr[1], g.pl[0] - g.pr[0]) * 57.3;
+    const rc = detCard(snapCv, g.mid, g.pr, g.pl, g.ir) || lastCard;   // find the card again, precisely, on the saved picture
+    if (!rc) { cp = []; return openCard(); }
+    const th = (rc.tilt || 0) / 57.3, mx = rc.x + rc.w / 2, my = rc.y + rc.h / 2;
+    cp = [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(([i, j]) => { const dx = i * rc.w / 2, dy = j * rc.h / 2; return {x: VW - (mx + dx * Math.cos(th) - dy * Math.sin(th)), y: my + dx * Math.sin(th) + dy * Math.cos(th)}; });   // the picture is shown mirrored
+    return cardInfo().ok ? cardResult() : openCard();
+  }
+  show("res");
+}
+
+/* ---------- fine-tune by hand ---------- */
+const PAN = {R: $("pR"), L: $("pL"), B: $("pB")};
+const view = {}, clone = o => JSON.parse(JSON.stringify(o));
+let drag = null;
+PAN.R.width = PAN.L.width = 400; PAN.R.height = PAN.L.height = 400; PAN.B.width = 640; PAN.B.height = 320;
+
+function setViews() {   // fixed zoom windows around the starting positions (image pixels)
+  const ir = (adj0.R.d + adj0.L.d) / 2;
+  for (const e of ["R", "L"]) view[e] = {x: adj0[e].c.x, y: adj0[e].c.y, w: 2.8 * ir, h: 2.8 * ir};
+  view.B = {x: adj0.b.x, y: adj0.b.y, w: 6 * ir, h: 3 * ir};
+}
+// Panels show a mirrored picture, like a mirror: the patient's right eye is on the right
+const sc = k => PAN[k].width / view[k].w;
+const toP = (k, q) => ({x: (view[k].x + view[k].w / 2 - q.x) * sc(k), y: (q.y - view[k].y + view[k].h / 2) * sc(k)});
+const toI = (k, p) => ({x: view[k].x + view[k].w / 2 - p.x / sc(k), y: view[k].y - view[k].h / 2 + p.y / sc(k)});
+
+function tag(g, t, x, y) { g.font = "bold 20px system-ui"; g.lineWidth = 4; g.strokeStyle = "#000"; g.strokeText(t, x, y); g.fillStyle = "#fff"; g.fillText(t, x, y); }
+
+function drawPanel(k) {
+  const c = PAN[k], g = c.getContext("2d"), v = view[k], s = sc(k);
+  g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, c.width, c.height);
+  g.save();
+  if ("filter" in g) g.filter = "brightness(1.25) contrast(1.3)";
+  g.setTransform(-s, 0, 0, s, s * (v.x + v.w / 2), -s * (v.y - v.h / 2));
+  g.drawImage(snapCv, 0, 0);
+  g.restore();
+  if (k === "B") {
+    const b = toP("B", adj.b);
+    g.strokeStyle = "#fff"; g.lineWidth = 3; g.beginPath(); g.moveTo(b.x, 0); g.lineTo(b.x, c.height); g.stroke();
+    g.fillStyle = "#fff"; g.beginPath(); g.arc(b.x, c.height / 2, 10, 0, 7); g.fill();
+    for (const e of ["R", "L"]) {   // where the eyes are, for reference
+      const p = toP("B", adj[e].c);
+      g.strokeStyle = "#3df0c0"; g.lineWidth = 3; g.beginPath(); g.moveTo(p.x, 0); g.lineTo(p.x, 22); g.stroke();
+      tag(g, e, p.x - 6, 44);
+    }
+    return;
+  }
+  const m = adj[k], C = toP(k, m.c), r = m.d / 2 * s;
+  g.strokeStyle = "#ffd54a"; g.lineWidth = 3; g.beginPath(); g.arc(C.x, C.y, r, 0, 7); g.stroke();
+  g.lineWidth = 2; g.setLineDash([6, 5]); g.beginPath(); g.moveTo(C.x - r, C.y); g.lineTo(C.x + r, C.y); g.stroke(); g.setLineDash([]);
+  g.strokeStyle = "#3df0c0"; g.lineWidth = 2.5; g.beginPath();   // the circle's centre: this is the point used for the PD
+  g.moveTo(C.x - 16, C.y); g.lineTo(C.x + 16, C.y); g.moveTo(C.x, C.y - 16); g.lineTo(C.x, C.y + 16); g.stroke();
+  tag(g, cardMode ? "Scale from card" : "Circle = 12.3 mm", 10, 26);
+}
+
+// The PD uses the centres of the two circles, and the average circle size sets the scale
+function solveAdj(a) { return solve([a.R.c.x, a.R.c.y], [a.L.c.x, a.L.c.y], [a.b.x, a.b.y], (a.R.d + a.L.d) / 2, VW, VH); }
+
+function redrawAll() {
+  for (const k of ["R", "L", "B"]) drawPanel(k);
+  const o = solveAdj(adj), diff = o.pdv - autoRaw, q = mk(o.pdv, o.R);
+  $("adjnote").textContent = `PD ${q.pd.toFixed(1)} mm · Right ${q.r.toFixed(1)} · Left ${q.l.toFixed(1)}` +
+    (Math.abs(diff) > 3 ? ` · ${Math.abs(diff).toFixed(1)} mm ${diff > 0 ? "more" : "less"} than the automatic reading. Check that each circle fits its iris.` : "") +
+    (o.pdv < 50 || o.pdv > 76 ? " · This is outside the usual adult range (about 50 to 76 mm). Check the circles and the nose line." : "");
+}
+
+function openAdjust() { setViews(); show("adj"); redrawAll(); window.scrollTo(0, 0); }
+
+for (const k of ["R", "L", "B"]) {
+  const c = PAN[k];
+  const at = e => { const b = c.getBoundingClientRect(); return {x: (e.clientX - b.left) * c.width / b.width, y: (e.clientY - b.top) * c.height / b.height}; };
+  const move = e => {
+    if (!drag || drag.k !== k) return;
+    const q = toI(k, at(e));
+    if (k === "B") adj.b.x = q.x;
+    else adj[k].c = {x: q.x + drag.dx, y: q.y + drag.dy};   // dragging only ever moves the circle; its size is set with the slider
+    redrawAll();
+  };
+  c.addEventListener("pointerdown", e => {
+    const p = at(e), q = toI(k, p);
+    if (k === "B") drag = {k};
+    else {
+      const m = adj[k], C = toP(k, m.c);
+      if (Math.hypot(p.x - C.x, p.y - C.y) > m.d / 2 * sc(k) + 30) return;   // grabbing empty space does nothing
+      drag = {k, dx: m.c.x - q.x, dy: m.c.y - q.y};
+    }
+    c.setPointerCapture(e.pointerId); move(e);
+  });
+  c.addEventListener("pointermove", move);
+  for (const t of ["pointerup", "pointercancel"]) c.addEventListener(t, () => { drag = null; });
+}
+
+// Arrow buttons: half-a-pixel moves, repeating while held. Arrows follow the mirrored picture.
+document.querySelectorAll(".nudge button").forEach(b => {
+  let t;
+  const step = () => { const c = adj[b.dataset.k].c; c.x -= +b.dataset.x * 0.5; c.y += +b.dataset.y * 0.5; redrawAll(); };
+  b.addEventListener("pointerdown", e => { e.preventDefault(); step(); t = setTimeout(() => { t = setInterval(step, 70); }, 350); });
+  for (const ev of ["pointerup", "pointerleave", "pointercancel"]) b.addEventListener(ev, () => { clearTimeout(t); clearInterval(t); });
+});
+
+$("fine").onclick = () => cardMode ? openCard() : openAdjust();
+$("adjBack").onclick = () => { adj = clone(applied); show("res"); };
+$("adjReset").onclick = () => { adj = clone(adj0); redrawAll(); };
+$("adjDone").onclick = () => {
+  const o = solveAdj(adj);
+  out = mk(o.pdv, o.R);
+  paint(out); applied = clone(adj);
+  $("note").textContent = `Adjusted by hand: ${cardMode ? "the scale comes from your card" : "the iris was taken as 12.3 mm across, which sets the scale"}, and the PD was measured between the centres of the two circles. You looked at a dot about ${Math.round(o.D / 10)} cm away, so the near reading (${o.near.toFixed(1)} mm) was converted to distance PD. ${cardMode ? "Typical accuracy is about ±1 mm with the card." : "Typical accuracy is about ±2 mm because the scale comes from your iris size. For the most accurate reading, measure again with a bank card."} If you have a prescription with a PD, use that value.`;
+  $("use").textContent = "Use this PD";
+  show("res");
+};
+
+
+/* ---------- automatic card detection ---------- */
+const dcv = document.createElement("canvas"), dg = dcv.getContext("2d", {willReadFrequently: true});
+// Finds the card-shaped rectangle (known size relative to the iris) with the strongest outline inside the area above the eyes.
+function edgeFit(src, x0, y0, x1, y1, q, w0, scales, thr) {
+  const cw = Math.round((x1 - x0) * q), ch = Math.round((y1 - y0) * q);
+  if (cw < 20 || ch < 15) return null;
+  dcv.width = cw; dcv.height = ch; dg.drawImage(src, x0, y0, x1 - x0, y1 - y0, 0, 0, cw, ch);
+  const d = dg.getImageData(0, 0, cw, ch).data, n = cw * ch, rad = q > 12 ? 2 : 1, H = new Float32Array(n), V = new Float32Array(n);
+  for (let y = 1; y < ch - 1; y++) for (let x = 1; x < cw - 1; x++) {
+    const i = (y * cw + x) * 4, a = i - 4, b = i + 4, c = i - cw * 4, e = i + cw * 4;
+    V[y * cw + x] = Math.abs(d[b] - d[a]) + Math.abs(d[b + 1] - d[a + 1]) + Math.abs(d[b + 2] - d[a + 2]);
+    H[y * cw + x] = Math.abs(d[e] - d[c]) + Math.abs(d[e + 1] - d[c + 1]) + Math.abs(d[e + 2] - d[c + 2]);
+  }
+  const PH = new Float32Array(ch * (cw + 1)), PV = new Float32Array((ch + 1) * cw); let tot = 0;
+  for (let y = 0; y < ch; y++) for (let x = 0; x < cw; x++) {   // edge strength allowing a small tilt, then running totals along rows and columns
+    let h = 0, v = 0;
+    for (let k = -rad; k <= rad; k++) { const yy = Math.min(ch - 1, Math.max(0, y + k)), xx = Math.min(cw - 1, Math.max(0, x + k)); h = Math.max(h, H[yy * cw + x]); v = Math.max(v, V[y * cw + xx]); }
+    PH[y * (cw + 1) + x + 1] = PH[y * (cw + 1) + x] + h; PV[(y + 1) * cw + x] = PV[y * cw + x] + v; tot += h + v;
+  }
+  const mean = tot / (2 * n); let best = null;
+  for (const s of scales) {
+    const w = Math.round(w0 * s * q), h = Math.round(w / 1.586);
+    if (w >= cw || h >= ch) continue;
+    for (let y = 0; y + h < ch; y++) for (let x = 0; x + w < cw; x++) {
+      const r0 = y * (cw + 1) + x, r1 = (y + h) * (cw + 1) + x;
+      const t = (PH[r0 + w] - PH[r0]) / w, b = (PH[r1 + w] - PH[r1]) / w, l = (PV[(y + h) * cw + x] - PV[y * cw + x]) / h, r = (PV[(y + h) * cw + x + w] - PV[y * cw + x + w]) / h;
+      const sc = .5 * Math.min(t, b, l, r) + .125 * (t + b + l + r);
+      if (!best || sc > best.sc) best = {sc, x, y, w, h};
+    }
+  }
+  if (!best || best.sc < thr * mean) return null;
+  const edgeY = (y, xa, xb) => { let bs = -1, by = y; for (let yy = Math.max(1, y - 10); yy <= Math.min(ch - 2, y + 10); yy++) { let t = 0; for (let x = xa; x < xb; x++) t += H[yy * cw + x]; if (t > bs) { bs = t; by = yy; } } return by; };
+  const a0 = best.x + Math.round(.1 * best.w), a1 = best.x + Math.round(.3 * best.w), b0 = best.x + Math.round(.7 * best.w), b1 = best.x + Math.round(.9 * best.w);
+  const slope = ((edgeY(best.y, b0, b1) - edgeY(best.y, a0, a1)) + (edgeY(best.y + best.h, b0, b1) - edgeY(best.y + best.h, a0, a1))) / 2 / (.6 * best.w);
+  return {x: x0 + best.x / q, y: y0 + best.y / q, w: best.w / q, h: best.h / q, tilt: Math.atan(slope) * 57.3};   // tilt in degrees, image coordinates
+}
+function detCard(src, mid, pr, pl, ir) {
+  const ye = (pr[1] + pl[1]) / 2, W = src.videoWidth || src.width, H = src.videoHeight || src.height;
+  const a = edgeFit(src, Math.max(0, mid[0] - 7 * ir), Math.max(0, ye - 11 * ir), Math.min(W, mid[0] + 7 * ir), Math.max(0, ye - 1.2 * ir), 8 / ir, CARD_L / IRIS_MM * ir * 1.03, [.85, .9, .95, 1, 1.05, 1.1, 1.15, 1.2], CARD_THR);
+  if (!a) return null;
+  const m = .4 * ir;   // second pass: same search at higher resolution, close to the first answer
+  return edgeFit(src, Math.max(0, a.x - m), Math.max(0, a.y - m), Math.min(W, a.x + a.w + m), Math.min(H, a.y + a.h + m), 24 / ir, a.w, [.96, .98, 1, 1.02, 1.04], 0) || a;
+}
+
+/* ---------- card as the size reference ---------- */
+const pC = $("pC"); let cp = [], cd = -1, sel = -1;
+function cardInfo() {
+  if (cp.length < 4) return null;
+  const e = (i, j) => Math.hypot(cp[i].x - cp[j].x, cp[i].y - cp[j].y), a = (e(0, 1) + e(2, 3)) / 2, b = (e(1, 2) + e(3, 0)) / 2, L = Math.max(a, b), S = Math.min(a, b);
+  // a tilted card looks shorter, so the larger pixels-per-mm of the two edges is the true one
+  const f = a >= b ? [0, 1] : [1, 2], ang = Math.atan2(cp[f[1]].y - cp[f[0]].y, cp[f[1]].x - cp[f[0]].x) * 57.3;
+  const rel = ((-ang - eyeRoll + 90) % 180 + 180) % 180 - 90;   // long side relative to the line between the eyes (the picture is mirrored)
+  return {sc: Math.min(CARD_L / L, CARD_S / S), ok: Math.abs(L / S / (CARD_L / CARD_S) - 1) < .07 && Math.abs(rel) < 4};
+}
+function cardUI() {
+  const g = pC.getContext("2d"), r = VW * .09, lw = Math.max(2, VW / 400), c = cardInfo();
+  g.setTransform(-1, 0, 0, 1, VW, 0); g.drawImage(snapCv, 0, 0); g.setTransform(1, 0, 0, 1, 0, 0);
+  g.lineWidth = lw; g.strokeStyle = g.fillStyle = "#ffd54a";
+  g.beginPath(); cp.forEach((p, i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)); if (cp.length > 3) g.closePath(); g.stroke();
+  cp.forEach(p => { g.beginPath(); g.arc(p.x, p.y, lw * 2, 0, 7); g.fill(); });
+  if (sel >= 0 && cp[sel]) {   // 8x magnifier of the selected corner, parked on the far side
+    const p = cp[sel], R = VW * .16, lx = p.x < VW / 2 ? VW - R - 10 : R + 10, ly = R + 10;
+    g.strokeStyle = "#fff"; g.lineWidth = lw * 1.5; g.beginPath(); g.arc(p.x, p.y, lw * 5, 0, 7); g.stroke();
+    g.save(); g.beginPath(); g.arc(lx, ly, R, 0, 7); g.clip();
+    g.setTransform(-8, 0, 0, 8, lx + 8 * (VW - p.x), ly - 8 * p.y); g.drawImage(snapCv, 0, 0); g.restore();
+    g.lineWidth = lw; g.beginPath(); g.arc(lx, ly, R, 0, 7); g.moveTo(lx - R, ly); g.lineTo(lx + R, ly); g.moveTo(lx, ly - R); g.lineTo(lx, ly + R); g.stroke();
+  }
+  $("cDone").disabled = false; $("cDone").hidden = !(c && c.ok);   // no way forward unless the corners form a card seen straight on
+  $("cnote").textContent = cp.length < 4 ? `Tap corner ${cp.length + 1} of 4.` : c.ok ? "Looks good. Drag a dot or use the arrow keys or buttons to fine-tune, then tap Next." : "The card lines are not straight (tilted, or not seen straight on). Drag them onto the corners, or tap Measure again below to start over with the card flat and level.";
+}
+function openCard() { pC.width = VW; pC.height = VH; cd = -1; sel = cp.length ? 0 : -1; show("card"); cardUI(); window.scrollTo(0, 0); }
+const cat = e => { const b = pC.getBoundingClientRect(); return {x: (e.clientX - b.left) * VW / b.width, y: (e.clientY - b.top) * VH / b.height}; };
+pC.addEventListener("pointerdown", e => {
+  const q = cat(e), reach = 30 * VW / pC.getBoundingClientRect().width;
+  cd = cp.findIndex(p => Math.hypot(p.x - q.x, p.y - q.y) < reach);
+  if (cd < 0 && cp.length < 4) { cp.push(q); cd = cp.length - 1; }
+  if (cd >= 0) { sel = cd; pC.setPointerCapture(e.pointerId); }
+  cardUI();
+});
+pC.addEventListener("pointermove", e => { if (cd >= 0) { cp[cd] = cat(e); cardUI(); } });
+for (const t of ["pointerup", "pointercancel"]) pC.addEventListener(t, () => { cd = -1; cardUI(); });
+$("cAgain").onclick = () => { cp = []; sel = -1; cd = -1; lastCard = null; $("go").textContent = "Start camera"; $("err").hidden = true; show("intro"); window.scrollTo(0, 0); };
+$("cUndo").onclick = () => { cp.pop(); sel = cp.length - 1; cardUI(); };
+const nudgeCard = (dx, dy) => { if (cp[sel]) { cp[sel] = {x: cp[sel].x + dx, y: cp[sel].y + dy}; cardUI(); } };   // screen directions (the picture is mirrored)
+const pick = k => { if (cp.length) { sel = (Math.max(sel, 0) + k + cp.length) % cp.length; cardUI(); } };
+$("cPrev").onclick = () => pick(-1); $("cNext").onclick = () => pick(1);
+document.addEventListener("keydown", e => {
+  if ($("card").hidden) return;
+  const k = {ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1]}[e.key];
+  if (k) { e.preventDefault(); const st = e.shiftKey ? 3 : .5; nudgeCard(k[0] * st, k[1] * st); }
+  else if (e.key >= "1" && e.key <= "4" && cp[e.key - 1]) { sel = e.key - 1; cardUI(); }
+});
+document.querySelectorAll(".cnudge button").forEach(b => {   // hold to repeat
+  let t; const step = () => nudgeCard(+b.dataset.x * .5, +b.dataset.y * .5);
+  b.addEventListener("pointerdown", e => { e.preventDefault(); step(); t = setTimeout(() => { t = setInterval(step, 60); }, 350); });
+  for (const ev of ["pointerup", "pointerleave", "pointercancel"]) b.addEventListener(ev, () => { clearTimeout(t); clearInterval(t); });
+});
+const cardSe = () => { const c = cardInfo(), Dc = c.sc * .75 * Math.max(VW, VH); return c.sc * (1 + CARD_DEPTH / Dc); };   // mm per pixel at the eyes
+function cardResult() {
+  const se = cardSe(); for (const m of [adj0.R, adj0.L]) m.d = IRIS_MM / se;   // same maths as before, with the card's scale
+  const o = solveAdj(adj0); autoRaw = o.pdv; out = mk(o.pdv, o.R); paint(out);
+  adj = clone(adj0); applied = clone(adj0); $("fine").hidden = false; $("fine").textContent = "Fine-tune card, pupils and nose bridge"; $("use").textContent = "Use this PD";
+  console.log("iris measured with card (mm):", (irDet * se).toFixed(2));
+  $("note").textContent = `The card gave the true size scale, so no iris size was assumed. You looked at a dot about ${Math.round(o.D / 10)} cm away, so the near reading (${o.near.toFixed(1)} mm) was converted to distance PD. Typical accuracy is about ±1 mm. Your iris measured ${(irDet * se).toFixed(1)} mm across.`;
+  show("res");
+}
+$("cDone").onclick = () => { const se = cardSe(); for (const m of [adj0.R, adj0.L, adj.R, adj.L, applied.R, applied.L]) m.d = IRIS_MM / se; openAdjust(); };
+
+$("go").onclick = () => start(true);
+$("again").onclick = () => { $("use").textContent = "Use this PD"; start(cardMode); };
+$("use").onclick = () => {
+  const detail = {type: "pd-measured", pd: out.pd, pdRight: out.r, pdLeft: out.l, unit: "mm"};
+  window.parent.postMessage(detail, "*");
+  window.dispatchEvent(new CustomEvent("pd-measured", {detail}));
+  try { navigator.clipboard.writeText(`PD ${out.pd} mm (R ${out.r} / L ${out.l})`); } catch (e) {}
+  $("use").textContent = "Saved";
+};
+</script>
+</body>
+</html>
